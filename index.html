@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <meta name="theme-color" content="#071D5F"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Gym Dolph"/>
+  <title>Gym Dolph</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+<link rel="stylesheet" href="style.css" />
+<script src="Athlete_Profile-GitHub.js"></script>
+<script src="App_Config-GitHub.js"></script>
+<script>(function(){
+  try{
+    var t = localStorage.getItem("gymdolph_theme");
+    // v0.9.8 fix: on first load (no stored theme yet — the exact case that
+    // was showing GGD's Chrome header as Gym Dolph's dark navy instead of
+    // pink) this used to skip setting data-theme entirely and leave the
+    // meta theme-color at its hardcoded dark default until app.js ran later.
+    // Resolve the per-app default (DEFAULT_THEME) right here, before first paint.
+    // Load order matters: App_Config-GitHub.js loads AFTER the profile precisely
+    // so its coding-owned value wins over any stale DEFAULT_THEME a content
+    // thread may have left behind in Athlete_Profile-GitHub.js.
+    if (!t) t = (typeof DEFAULT_THEME !== 'undefined' ? DEFAULT_THEME : 'dark');
+    document.documentElement.setAttribute("data-theme", t);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      var bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+      if (bg) meta.setAttribute('content', bg);
+    }
+  }catch(e){}
+})();</script>
+<style>
+/* ── DRIVE SYNC UI (v0.9) ── */
+.drive-status-bar{display:flex;align-items:center;gap:10px;
+  background:var(--card-bg);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;}
+.drive-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s;}
+.drive-status-dot.connected{background:var(--green);}
+.drive-status-dot.disconnected{background:var(--pink2);}
+.drive-status-dot.syncing{background:var(--green);animation:driveSyncPulse 1s ease-in-out infinite;}
+@keyframes driveSyncPulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+.drive-status-text{flex:1;}
+.drive-status-main{font-size:13px;color:var(--text);}
+.drive-account{font-size:11px;color:var(--green2);margin-top:2px;}
+.drive-last-backup-row{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 2px 6px;}
+.drive-last-backup-val{font-size:11px;color:var(--green2);}
+.drive-btn-connect{color:var(--green2);border-color:rgba(119,253,1,.35)!important;
+  background:rgba(119,253,1,.08)!important;}
+.drive-btn-disconnect{color:var(--pink2)!important;font-size:12px;
+  border-color:rgba(235,71,206,.2)!important;background:transparent!important;}
+.drive-hint{font-size:11px;color:var(--text-dim);padding:6px 2px 0;}
+.drive-relay-toggle{font-size:11px;color:var(--text-dim);padding:10px 2px 0;
+  cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.drive-relay-toggle:active{color:var(--green2);}
+.drive-token-textarea{width:100%;min-height:60px;margin-top:8px;
+  background:rgba(102,128,204,.12);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text);font-size:12px;
+  padding:8px;font-family:monospace;resize:vertical;box-sizing:border-box;}
+.settings-advanced-toggle{background:none;border:none;color:var(--text-dim);
+  font-family:'Exo 2',sans-serif;font-size:12px;cursor:pointer;padding:4px 2px;
+  text-align:left;letter-spacing:.5px;}
+.settings-advanced-panel{margin-top:6px;}
+.bs-full-history-btn{background:none;border:none;color:var(--text-dim);
+  font-family:'Exo 2',sans-serif;font-size:11px;cursor:pointer;padding:2px 0;}
+.bs-full-history-btn:active{color:var(--green2);}
+.bs-history-toggle{display:flex;align-items:center;gap:4px;
+  padding:10px 2px 8px;cursor:pointer;margin-bottom:0;}
+.bs-history-label{font-size:11px;color:var(--text-dim);letter-spacing:.5px;}
+.bs-history-arrow{font-size:10px;color:var(--text-dim);}
+.bs-history-list{margin-bottom:4px;margin-top:6px;}
+.bs-section-divider{border:none;border-top:1px solid var(--border);margin:20px 0 16px;}
+.bs-history-row{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  margin-bottom:6px;cursor:pointer;}
+.bs-history-row:active{background:rgba(102,128,204,.25);}
+.bs-history-date{font-size:12px;color:var(--text-dim);flex-shrink:0;}
+.bs-history-vals{font-size:13px;color:var(--text);flex:1;}
+.bs-history-edit{font-size:12px;color:var(--text-dim);flex-shrink:0;}
+.modify-ex-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.modify-ex-delete{background:none;border:none;color:var(--pink2);font-size:14px;
+  cursor:pointer;padding:2px 6px;margin-left:auto;opacity:.7;flex-shrink:0;}
+.modify-ex-delete:active{opacity:1;}
+.modify-sets-row{padding-left:32px;margin-bottom:4px;}
+.modify-delete-session-btn{width:100%;background:none;border:none;
+  color:var(--pink2);font-family:'Exo 2',sans-serif;font-size:12px;
+  cursor:pointer;padding:10px 0 2px;opacity:.7;text-align:center;}
+.modify-delete-session-btn:active{opacity:1;}
+  transform:translateX(-50%) translateY(12px);
+  background:rgba(7,29,95,.96);border:1px solid var(--green);
+  border-radius:20px;padding:8px 18px;font-size:13px;
+  color:var(--green2);opacity:0;transition:all .3s;
+  pointer-events:none;z-index:9999;white-space:nowrap;}
+.drive-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.drive-toast.error{border-color:var(--pink);color:var(--pink2);}
+
+#app-dialog {
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:flex;align-items:flex-end;justify-content:center;
+  z-index:9999;
+}
+.app-dialog-box {
+  width:100%;max-width:480px;border-radius:16px 16px 0 0;
+  border-top:1px solid var(--border);
+  padding:24px 24px 32px;
+}
+
+@media (max-height: 600px) {
+  .modal-box { padding: 16px 20px 20px; }
+}
+/* keyboard avoidance — push modal up when virtual keyboard shows */
+#set-modal, #body-stats-modal {
+  padding-bottom: env(keyboard-inset-height, 0px);
+  transition: padding-bottom 0.2s;
+}
+/* reset button on timer pill — hidden by default, fades in on pause */
+#header-timer-reset {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px; cursor: pointer;
+  background: none; border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  color: rgba(190,255,137,0.6); font-size: 12px; line-height: 1;
+  visibility: hidden; opacity: 0;
+  transition: opacity .25s ease;
+}
+#header-timer-reset.visible { opacity: 1; }
+#header-timer-reset:active { color: var(--pink2); }
+
+
+/* modal label tag */
+.modal-label-tag {
+  font-family: var(--font-head), sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 3px;
+  color: var(--header); margin-bottom: 6px;
+}
+
+/* header START pill — same outline/location as timer pill, breathes pink→green */
+/* Both pills share identical fixed box metrics so the outline never changes shape */
+#header-timer-start, #header-timer-pill {
+  height: 36px; box-sizing: border-box;
+  justify-content: center; white-space: nowrap;
+}
+#header-timer-start {
+  display: none; align-items: center; gap: 8px;
+  background: rgba(7,29,95,0.4);
+  border: 1.5px solid var(--green2);
+  border-radius: 20px; padding: 4px 14px 4px 12px;
+  cursor: pointer; flex-shrink: 0;
+}
+#header-timer-start.visible { display: flex; }
+.hts-tri {
+  width: 0; height: 0; flex-shrink: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 9px solid var(--green2);
+  animation: htsBreathe 1.6s ease-in-out infinite;
+}
+.hts-label {
+  font-family: var(--font-head), sans-serif; font-size: 14px; font-weight: 700;
+  letter-spacing: 2px; color: var(--green2);
+  animation: htsBreatheText 1.6s ease-in-out infinite;
+}
+@keyframes htsBreathe {
+  0%, 100% { border-left-color: var(--pink); transform: scale(1); }
+  50%      { border-left-color: var(--green2); transform: scale(1.15); }
+}
+@keyframes htsBreatheText {
+  0%, 100% { color: var(--pink); }
+  50%      { color: var(--green2); }
+}
+
+/* refresh page button under finish workout */
+.refresh-page-btn {
+  display: block; width: 100%; margin-top: 10px;
+  background: none; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 11px;
+  color: var(--text-dim); font-family: var(--font-head), sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  cursor: pointer; transition: border-color .2s, color .2s;
+}
+.refresh-page-btn:active { border-color: var(--green2); color: var(--green2); }
+</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+</head>
+<body>
+<!-- SPLASH -->
+<div id="splash"><div id="splash-lottie"></div><div class="splash-loader"><div></div></div><div class="splash-version" id="splash-version"></div><div class="splash-skip">tap anywhere to skip</div></div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+  <!-- HEADER (v0.8: taller, progress bar inside) -->
+  <header id="app-header">
+    <div class="header-row">
+      <img src="logo-main-dark.png" id="logo-main-img" alt="Gym Dolph" class="header-logo" onclick="showView('home')"/>
+      <div class="header-center">
+        <button id="header-timer-start" onclick="startTimerTick()" title="Start session timer">
+          <span class="hts-tri"></span>
+          <span class="hts-label">START TIMER</span>
+        </button>
+        <div id="header-timer-pill">
+          <div id="header-timer-dot"></div>
+          <div id="header-timer-display">00:00</div>
+          <button id="header-timer-toggle" onclick="toggleTimer()" title="Pause/Resume">
+            <span id="htt-play"></span>
+            <span id="htt-pause" style="display:none">
+              <span class="htt-bar"></span>
+              <span class="htt-bar"></span>
+            </span>
+          </button>
+          <button id="header-timer-reset" onclick="confirmResetTimer()" title="Reset timer">✕</button>
+        </div>
+      </div>
+      <button class="burger-btn" onclick="toggleMenu()" aria-label="menu"><span></span><span></span><span></span></button>
+    </div>
+    <!-- progress bar row — only visible during workout -->
+    <div id="header-progress-wrap">
+      <div class="header-progress-bar-bg">
+        <div class="header-progress-bar" id="header-progress-bar"></div>
+      </div>
+      <div class="header-progress-label" id="header-progress-label"></div>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <div id="view-home" class="view active">
+    <div class="view-scroll">
+      <div id="sub-header"><span id="banner-date"></span><div class="sh-right"><span class="sh-streak" onclick="showView('calendar')">🔥 <span id="streak-count">0</span> day streak</span><span class="sh-vsep"></span><span class="sh-stat" onclick="showView('stats')">⚖️ <span id="sh-weight">— kg</span> · <span id="sh-bf">—% bf</span></span></div></div>
+      <div id="home-deload-notice" style="display:none" class="deload-notice home-deload-notice"></div>
+      <div class="day-cards" id="day-cards"></div>
+    </div>
+  </div>
+
+  <!-- WORKOUT -->
+  <div id="view-workout" class="view">
+    <div class="view-scroll" id="workout-scroll">
+      <div class="workout-header-block">
+        <button class="back-btn" onclick="handleBackFromWorkout()">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div>
+          <div class="workout-day-label" id="wd-day-label">D1</div>
+          <div class="workout-focus" id="wd-focus">Chest + Triceps</div>
+        </div>
+      </div>
+      <!-- v0.9.10: prominent start control at the top of the page. Once the timer is
+           running this hides and the header pill takes over, so the control lives in
+           exactly one place at a time. -->
+      <button id="wd-start-session" onclick="startTimerTick()">
+        <span class="wss-tri"></span><span>START SESSION</span>
+      </button>
+      <div id="guide-actions-row" style="display:flex;gap:10px;margin-bottom:12px">
+        <button class="guide-entry-btn" style="flex:1;margin:0" onclick="openGuide()">
+          HOW TO
+        </button>
+        <button class="guide-entry-btn" style="flex:1;margin:0" onclick="openNotes()">
+          NOTES
+        </button>
+        <button class="guide-entry-btn ai-gated" id="ask-coach-btn" style="flex:1;margin:0;display:none" onclick="toggleAskCoach()">
+          ASK COACH
+        </button>
+      </div>
+      <div id="ask-coach-panel" style="display:none">
+        <div class="ask-input-row">
+          <input type="text" class="ask-input" id="ask-coach-input" placeholder="Ask anything mid-workout…"/>
+          <button class="ask-send" onclick="submitAskCoach()">Ask</button>
+        </div>
+        <div class="coach-loading" id="ask-coach-loading" style="display:none">
+          <span class="coach-dots"><span></span><span></span><span></span></span> asking Claude…
+        </div>
+        <div class="coach-note" id="ask-coach-note" style="display:none"></div>
+        <div class="ai-error" id="ask-coach-error" style="display:none"></div>
+        <button class="dismiss-coach-btn" onclick="toggleAskCoach()">✕ close coach</button>
+      </div>
+      <div id="workout-blocks"></div>
+      <div class="finish-btn-wrap">
+        <button class="finish-btn" id="finish-btn" onclick="finishWorkout()">✓ FINISH WORKOUT</button>
+        <button class="refresh-page-btn" onclick="openRefreshConfirm()">⟳ RESET SESSION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXERCISE GUIDE (v0.9.5) -->
+  <div id="view-guide" class="view">
+    <div class="view-scroll">
+      <div class="guide-header">
+        <button class="back-btn" onclick="closeGuide()">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div>
+          <div class="guide-title">Exercise Guide</div>
+          <div class="guide-sub" id="guide-sub"></div>
+        </div>
+      </div>
+      <div id="guide-list"></div>
+    </div>
+  </div>
+
+  <!-- NOTES (v0.9.12 #10) -->
+  <div id="view-notes" class="view">
+    <div class="view-scroll">
+      <div class="guide-header">
+        <button class="back-btn" onclick="closeNotes()">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div>
+          <div class="guide-title">Notes</div>
+          <div class="guide-sub" id="notes-sub"></div>
+        </div>
+      </div>
+
+      <div class="guide-section-label">NOTES</div>
+      <div class="notes-general-form">
+        <textarea class="gx-input notes-textarea" id="general-note-input" placeholder="Progress, physical state, anything else…" rows="2"></textarea>
+        <button class="notes-add-btn" id="general-save-btn" onclick="addGeneralNote()">ADD NOTE</button>
+        <button class="gx-editlink" id="general-cancel-btn" style="display:none" onclick="cancelEditGeneralNote()">Cancel edit</button>
+      </div>
+      <div id="notes-general-list"></div>
+
+      <div class="guide-section-label" style="margin-top:18px">NEXT ATTEMPT — SHOWS ON THE EXERCISE</div>
+      <div class="notes-attempt-form">
+        <input type="text" class="gx-input" id="attempt-exname-input" placeholder="Exercise name (e.g. Leg press)" list="attempt-exname-list" oninput="updateNoteFormMode('attempt')"/>
+        <datalist id="attempt-exname-list"></datalist>
+        <div class="notes-input-row">
+          <input type="number" class="gx-input" id="attempt-value-input" placeholder="Target weight (kg)" min="0" step="0.5"/>
+          <input type="number" class="gx-input" id="attempt-reps-input" placeholder="Reps (optional)" min="0" step="1"/>
+        </div>
+        <button class="notes-add-btn" id="attempt-save-btn" onclick="addAttemptNote()">SAVE TARGET</button>
+        <button class="gx-editlink" id="attempt-cancel-btn" style="display:none" onclick="cancelEditAttemptNote()">Cancel edit</button>
+      </div>
+      <div id="notes-attempt-list"></div>
+
+      <div class="guide-section-label" style="margin-top:18px">DELOAD WEIGHT — THIS WEEK ONLY</div>
+      <div class="notes-attempt-form">
+        <input type="text" class="gx-input" id="deload-exname-input" placeholder="Exercise name (e.g. Leg press)" list="attempt-exname-list" oninput="updateNoteFormMode('deload')"/>
+        <div class="notes-input-row">
+          <input type="number" class="gx-input" id="deload-value-input" placeholder="Deload weight (kg)" min="0" step="0.5"/>
+          <input type="number" class="gx-input" id="deload-reps-input" placeholder="Reps (optional)" min="0" step="1"/>
+        </div>
+        <button class="notes-add-btn" id="deload-save-btn" onclick="addDeloadWeightNote()">SAVE DELOAD WEIGHT</button>
+        <button class="gx-editlink" id="deload-cancel-btn" style="display:none" onclick="cancelEditDeloadWeightNote()">Cancel edit</button>
+      </div>
+      <div id="notes-deload-list"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="view-history" class="view">
+    <div class="view-scroll">
+      
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div id="view-calendar" class="view">
+    <div class="view-scroll">
+      <div class="cal-streak-block">
+        <div class="cal-streak-num" id="cal-streak-num">0</div>
+        <div class="cal-streak-label">day streak 🔥</div>
+      </div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">◀</button>
+        <div class="cal-month-label" id="cal-month-label"></div>
+        <button class="cal-nav-btn" onclick="calNext()">▶</button>
+      </div>
+      <div class="cal-legend">
+        <span class="cal-leg-dot" style="background:var(--green)"></span><span>Training</span>
+        <span class="cal-leg-dot" style="background:var(--pink)"></span><span>Cardio/Stretch</span>
+        <span class="cal-leg-dot" style="background:var(--header)"></span><span>Rest</span>
+      </div>
+      <div id="cal-grid" class="cal-grid"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div id="view-stats" class="view">
+    <div class="view-scroll">
+      
+      <!-- v0.8: latest body stats at top -->
+      <div class="section-label">BODY STATS</div>
+      <div class="body-stats-row" id="body-stats-summary"></div>
+      <div id="body-stats-empty-state" style="display:none;padding:12px 0 4px;">
+        <button onclick="openBodyStatsModal()" style="background:none;border:1px solid rgba(160,180,224,.35);border-radius:20px;color:var(--text-dim);font-family:var(--font-head),sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;padding:8px 20px;cursor:pointer;">+ LOG FIRST ENTRY</button>
+      </div>
+      <canvas id="body-weight-canvas" class="stats-canvas" style="margin-top:12px;margin-bottom:0"></canvas>
+      <div id="body-stats-tendency" style="padding:10px 4px 4px;display:none"></div>
+      <div id="body-stats-history"></div>
+      <div id="milestones-section" style="display:none">
+        <hr class="bs-section-divider"/>
+        <div class="section-label">MILESTONES</div>
+        <div id="milestones-body"></div>
+      </div>
+      <hr class="bs-section-divider"/>
+      <div class="section-label">EXERCISE PROGRESS</div>
+      <div class="stats-picker-wrap" id="stats-picker-wrap">
+        <div class="stats-picker-selected" id="stats-picker-selected" onclick="toggleStatsPicker()">
+          <span id="stats-picker-label">Select exercise</span>
+          <span class="stats-picker-arrow">▼</span>
+        </div>
+        <div class="stats-picker-dropdown" id="stats-picker-dropdown" style="display:none"></div>
+      </div>
+      <canvas id="stats-canvas" class="stats-canvas"></canvas>
+      <div id="stats-empty" class="stats-empty" style="display:none">No weight data logged yet.</div>
+      <hr class="bs-section-divider"/>
+      <div class="section-label" style="margin-top:0">WEEKLY TONNAGE</div>
+      <div id="deload-notice" style="display:none" class="deload-notice">⚠️ Deload week due — 3 weeks of rising load</div>
+      <canvas id="volume-canvas" class="stats-canvas"></canvas>
+
+      <hr class="bs-section-divider"/>
+      <div class="section-label" style="margin-top:0">EXPORT RESULTS</div>
+      <div class="exp-panel">
+        <div class="exp-row" id="exp-scope"></div>
+        <div class="stats-picker-wrap" id="exp-picker-wrap">
+          <div class="stats-picker-selected" onclick="toggleExpPicker()">
+            <span id="exp-picker-label">Select exercise</span>
+            <span class="stats-picker-arrow">▼</span>
+          </div>
+          <div class="stats-picker-dropdown" id="exp-picker-dropdown" style="display:none"></div>
+        </div>
+        <div class="exp-row" id="exp-presets"></div>
+        <div class="exp-dates">
+          <label>From<input type="date" id="exp-from" onchange="onExpDateChange()"></label>
+          <label>To<input type="date" id="exp-to" onchange="onExpDateChange()"></label>
+        </div>
+        <div class="exp-summary" id="exp-summary"></div>
+        <div class="exp-actions">
+          <button class="settings-btn" onclick="runExport('csv')">⬇ CSV</button>
+          <button class="settings-btn" onclick="runExport('json')">⬇ JSON</button>
+        </div>
+        <div class="ai-hint settings-help">Saves a separate dated file — it never overwrites your Drive backup.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="view-settings" class="view">
+    <div class="view-scroll">
+
+      <div class="settings-group">
+        <div class="settings-label">PROGRAM</div>
+
+        <div class="ai-gated" id="pe-wrap" style="display:none">
+          <div class="pe-chat" id="pe-chat"></div>
+          <div class="pe-input-row">
+            <input type="text" class="pe-input" id="pe-input" placeholder="e.g. swap cable crossover for dumbbell flyes"/>
+            <button class="pe-send" id="pe-send" onclick="peSend()">Send</button>
+          </div>
+          <div class="ai-hint settings-help">Conversation clears when you leave Settings. Every Apply backs up the previous program first.</div>
+        </div>
+        <div class="ai-hint" id="pe-locked-hint">Program editing by chat needs the AI key below.</div>
+
+        <button class="settings-btn" style="margin-top:16px" onclick="peRestore()">Restore previous program</button>
+        <div class="ai-hint settings-help">Swaps back to the program as it was before the last applied change. Tap again to undo the restore.</div>
+
+        <button class="settings-btn" onclick="exportProgram()">Export Program (Gym_Program-GitHub.js)</button>
+        <div class="ai-hint settings-help">Downloads a ready-to-commit Gym_Program-GitHub.js of your current program. Drop it into the repo root on GitHub — no editing needed.</div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">HEART RATE MONITOR</div>
+        <div class="settings-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+            <span id="hr-settings-label">Polar · not connected</span>
+            <span id="hr-settings-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text-dim);flex-shrink:0"></span>
+          </div>
+          <span class="settings-sub settings-help">Connects via Bluetooth · BPM shown on all screens · long-press widget to disconnect</span>
+        </div>
+        <button class="settings-btn" onclick="openHRSheet()">Connect / Disconnect Polar</button>
+        <div style="margin-top:10px;">
+          <!-- Age — always visible -->
+          <div class="settings-item" style="justify-content:space-between;align-items:center;">
+            <span class="settings-sub">Age</span>
+            <input type="number" id="hr-age-input" min="10" max="90" placeholder="e.g. 30"
+              style="width:80px;background:rgba(102,128,204,.12);border:1px solid var(--border);
+              border-radius:var(--radius-sm);padding:6px 10px;color:var(--text);
+              font-family:var(--font-head),sans-serif;font-size:16px;font-weight:600;text-align:center;outline:none;"
+              oninput="updateHRZoneSettings()"/>
+          </div>
+          <!-- HR Zones — collapsible disclosure row -->
+          <div onclick="hrZonesToggle()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 4px 4px;margin-top:8px;">
+            <span style="font-size:12px;color:var(--text-dim);letter-spacing:1px;font-family:var(--font-head),sans-serif;font-weight:700;">HR ZONES <span id="hr-zones-age-display" style="font-weight:400;letter-spacing:0;"></span></span>
+            <svg id="hr-zones-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-dim);transition:transform .2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="hr-zones-panel" style="display:none;margin-top:4px;">
+            <div id="hr-zone-table" style="width:100%;font-size:11px;"></div>
+            <div style="margin-top:12px;">
+              <div class="settings-label" style="margin-bottom:8px;">TEST ZONES</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="simulateHR(80)"  style="font-family:var(--font-head),sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;background:none;border:1px solid rgba(160,180,224,.25);border-radius:20px;color:var(--text-dim);padding:6px 12px;cursor:pointer;">80 bpm</button>
+                <button onclick="simulateHR(100)" style="font-family:var(--font-head),sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;background:none;border:1px solid #7EC8E3;border-radius:20px;color:#7EC8E3;padding:6px 12px;cursor:pointer;">100 Recovery</button>
+                <button onclick="simulateHR(125)" style="font-family:var(--font-head),sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;background:none;border:1px solid #BEFF89;border-radius:20px;color:#BEFF89;padding:6px 12px;cursor:pointer;">125 Aerobic</button>
+                <button onclick="simulateHR(150)" style="font-family:var(--font-head),sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;background:none;border:1px solid #DC96D0;border-radius:20px;color:#DC96D0;padding:6px 12px;cursor:pointer;">150 Anaerobic</button>
+                <button onclick="simulateHR(170)" style="font-family:var(--font-head),sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;background:none;border:1px solid #FF6B6B;border-radius:20px;color:#FF6B6B;padding:6px 12px;cursor:pointer;">170 VO2 Max</button>
+                <button onclick="simulateHR(0)"   style="font-family:var(--font-head),sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;background:none;border:1px solid rgba(160,180,224,.25);border-radius:20px;color:var(--text-dim);padding:6px 12px;cursor:pointer;">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">GYM</div>
+        <div class="settings-item gym-card" onclick="openGymEquipment()" style="flex-direction:column;align-items:flex-start;gap:2px;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+            <span>Ivanhoe Aquatic &amp; Fitness Centre</span>
+            <span style="font-size:11px;color:var(--text-dim)">Equipment ›</span>
+          </div>
+          <span class="settings-sub">Ivanhoe, VIC · Technogym · tap to edit equipment</span>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">AI — CLAUDE</div>
+
+        <!-- No key state -->
+        <div id="ai-nokey">
+          <div class="ai-status-bar">
+            <div class="ai-status-dot off"></div>
+            <div>
+              <div class="ai-status-main">AI features off</div>
+              <span class="settings-sub">Add your Anthropic API key to enable</span>
+            </div>
+          </div>
+          <div class="ai-error" id="ai-settings-error" style="display:none"></div>
+          <div class="ai-key-input-row">
+            <input type="password" class="ai-key-input" id="ai-key-input" placeholder="sk-ant-..." autocomplete="off"/>
+            <button class="ai-key-save" onclick="saveApiKey()">Save</button>
+          </div>
+          <div class="ai-features-list settings-help">
+            <div class="locked">&#128274; Form coaching — ask mid-workout</div>
+            <div class="locked">&#128274; Silent safety check on completed lifts</div>
+            <div class="locked">&#128274; Program editor — edit by chat</div>
+          </div>
+          <div class="ai-hint settings-help">Your key is stored only on this phone and sent only to Anthropic. It is never included in GitHub, Drive backups, or JSON exports. Create one at console.anthropic.com.</div>
+        </div>
+
+        <!-- Key saved state -->
+        <div id="ai-haskey" style="display:none">
+          <div class="ai-status-bar">
+            <div class="ai-status-dot on"></div>
+            <div style="flex:1">
+              <div class="ai-status-main">AI features on</div>
+              <div class="ai-key-masked" id="ai-key-display"></div>
+              <button class="ai-key-toggle" id="ai-key-toggle" onclick="toggleApiKeyVisibility()">show key</button>
+            </div>
+          </div>
+          <div class="ai-features-list settings-help">
+            <div class="unlocked">&#10003; Form coaching — ask mid-workout</div>
+            <div class="unlocked">&#10003; Silent safety check on completed lifts</div>
+            <div class="unlocked">&#10003; Program editor — edit by chat</div>
+          </div>
+          <button class="settings-btn danger" onclick="removeApiKey()">Remove API key</button>
+          <div class="ai-hint settings-help">Model: Claude Sonnet &middot; estimated cost &asymp; $1&ndash;1.50 USD/month with normal use.</div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">GOOGLE DRIVE SYNC</div>
+
+        <!-- Disconnected state -->
+        <div id="drive-disconnected">
+          <div class="drive-status-bar">
+            <div class="drive-status-dot disconnected"></div>
+            <div class="drive-status-text">
+              <div class="drive-status-main">Not connected</div>
+              <div class="settings-sub">Sign in to enable automatic backup</div>
+            </div>
+          </div>
+          <button class="settings-btn drive-btn-connect" onclick="driveConnect()">Connect Google Drive</button>
+          <div class="drive-hint settings-help">You'll see a Google sign-in prompt. Uses your existing Google account — no new account needed.</div>
+
+          <!-- v0.9.8: Bluefy/iOS relay — Google blocks OAuth inside in-app
+               browsers, so on iOS/Bluefy the flow opens Safari instead.
+               Paste the token back here to finish connecting on this app. -->
+          <div class="drive-relay-toggle" onclick="toggleDriveTokenPaste()">Signed in via Safari? Paste your token &rsaquo;</div>
+          <div id="drive-token-paste-panel" style="display:none">
+            <textarea id="drive-paste-token-input" class="drive-token-textarea"
+              placeholder="Paste the Safari address bar link (or just the token) here"></textarea>
+            <button class="settings-btn drive-btn-connect" onclick="driveApplyPastedToken()">Apply Token</button>
+            <div class="drive-hint settings-help">On iOS/Bluefy, Connect opens Safari to sign in. When Safari shows "Drive sign-in complete", copy the token shown there and paste it here.</div>
+          </div>
+        </div>
+
+        <!-- Connected state -->
+        <div id="drive-connected" style="display:none">
+          <div class="drive-status-bar">
+            <div class="drive-status-dot connected" id="drive-dot"></div>
+            <div class="drive-status-text">
+              <div class="drive-status-main" id="drive-status-label">Connected</div>
+              <div class="drive-account" id="drive-account-name"></div>
+              <div class="settings-sub">Auto-backup active</div>
+            </div>
+          </div>
+          <div class="drive-last-backup-row">
+            <span class="settings-sub">Last backup</span>
+            <span class="drive-last-backup-val" id="last-backup-time">—</span>
+          </div>
+          <button class="settings-btn" id="drive-backup-btn" onclick="driveBackup(false)">Back Up Now</button>
+          <button class="settings-btn" id="drive-restore-btn" onclick="driveRestore()">Restore from Drive</button>
+          <button class="settings-btn drive-btn-disconnect" onclick="driveDisconnect()">Disconnect Google Drive</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">DATA SYNC</div>
+        <button class="settings-btn" onclick="exportData()">Export Data (JSON)</button>
+        <button class="settings-btn" onclick="importData()">Import Data (JSON)</button>
+        <input type="file" id="import-file-input" accept=".json" class="vh-file" onchange="handleImportFile(event)"/>
+        <span class="settings-sub settings-help">Manual JSON export / import — fallback if Drive is unavailable.</span>
+      </div>
+      <div class="settings-group">
+        <div class="settings-label">WEEK</div>
+        <div class="settings-item" onclick="openWeekResetConfirm()" style="cursor:pointer;justify-content:space-between">
+          <span>Reset current week</span>
+          <span style="font-size:11px;color:var(--pink2)">Reset ›</span>
+        </div>
+        <div class="settings-item" onclick="saveAndNextWeek()" style="cursor:pointer;justify-content:space-between">
+          <span>Save &amp; move to next week</span>
+          <span style="font-size:11px;color:var(--green2)">Save ›</span>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">DATA</div>
+        <button class="settings-btn danger" onclick="clearHistory()">Clear All History</button>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">APPEARANCE</div>
+        <div class="settings-item" style="justify-content:space-between;align-items:center;">
+          <span class="settings-sub">Theme</span>
+          <div class="theme-toggle" onclick="setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'bright':'dark')">
+            <span class="theme-lbl">Dark</span>
+            <span class="theme-track"><span class="theme-thumb"></span></span>
+            <span class="theme-lbl">Bright</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-label">APP</div>
+        <div class="settings-item"><span>Version</span><span class="settings-val" id="settings-version">—</span></div>
+        <div class="settings-item"><span>Profile</span><span class="settings-val" id="settings-profile-name"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY STATS BTN — left side, same line as footer logo -->
+  <div id="body-stats-btn-wrap">
+    <button id="body-stats-btn" onclick="openBodyStatsModal()" title="Log body stats">
+      <div class="scale-icon">
+        <div class="scale-bar"></div>
+        <div class="scale-dot"></div>
+        <div class="scale-bar"></div>
+      </div>
+    </button>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav id="bottom-nav">
+    <button class="nav-btn" id="nav-calendar" onclick="showView('calendar')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM7 2v2m10-2v2M3 9h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <span>Calendar</span>
+    </button>
+    <button class="nav-btn" id="nav-stats" onclick="showView('stats')">
+      <svg viewBox="0 0 24 24"><path d="M3 3v18h18v-2H5V3H3zm4 12l4-4 4 4 4-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Progress</span>
+    </button>
+    <button class="nav-btn" id="nav-history" onclick="showView('history')">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L15 9h4V5l-1.49 1.49A8.97 8.97 0 0 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      <span>History</span>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="showView('settings')">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96a6.99 6.99 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.37 1.04.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- HR WIDGET (v0.9.5) — horizontal pill, CSS-scrolling ECG on left, numbers on right -->
+  <div id="hr-pill"
+    onmousedown="hrWidgetPointerDown(event)" onmouseup="hrWidgetPointerUp()" onmouseleave="hrWidgetPointerUp()"
+    ontouchstart="hrWidgetPointerDown(event)" ontouchend="hrWidgetPointerUp()" ontouchcancel="hrWidgetPointerUp()">
+    <div class="hr-ecg-panel">
+      <svg class="hr-ecg-svg" id="hr-ecg-svg" viewBox="0 0 128 56" fill="none">
+        <line class="hr-ecg-base" x1="0" y1="28" x2="128" y2="28"/>
+        <path class="hr-ecg-trace" id="hr-ecg-trace" d="M 0,28 L 128,28"/>
+      </svg>
+    </div>
+    <div class="hr-widget-inner">
+      <span id="hr-pill-zone">ZONE 2</span>
+      <span id="hr-pill-bpm">--</span>
+      <span class="hr-pill-unit">bpm</span>
+    </div>
+  </div>
+
+  <!-- HR SHEET — kept for Settings connect/disconnect only -->
+  <div id="hr-sheet-backdrop" style="display:none" onclick="closeHRSheet()"></div>
+  <div id="hr-sheet" style="display:none">
+    <div class="hr-sheet-handle"></div>
+    <div class="hr-sheet-bpm-row">
+      <span class="hr-sheet-bpm" id="hr-sheet-bpm">--</span>
+      <span class="hr-sheet-bpm-unit">BPM</span>
+    </div>
+    <div class="hr-sheet-zone" id="hr-sheet-zone">—</div>
+    <div class="hr-sheet-device" id="hr-sheet-device"></div>
+    <button class="hr-sheet-btn" id="hr-sheet-btn" onclick="toggleHRConnection()">Connect Polar</button>
+    <div class="hr-sheet-hint" id="hr-sheet-hint"></div>
+  </div>
+
+  <!-- STICKY FOOTER LOGO + BODY STATS BUTTON (hidden on history/settings) -->
+  <div id="sticky-footer-logo">
+    <img src="logo-secondary-dark.png" id="logo-secondary-img" alt="Gym Dolph" onclick="showView('home')"/>
+  </div>
+</div>
+
+<!-- REST OVERLAY -->
+<div id="rest-overlay" style="display:none">
+  <div class="rest-box">
+    <div class="rest-title">REST</div>
+    <div class="rest-suggested-label" id="rest-suggested-label"></div>
+    <div class="rest-timer-btns">
+      <button class="rest-dur-btn" id="rdb-30" onclick="setRestDuration(30)">30s</button>
+      <button class="rest-dur-btn" id="rdb-60" onclick="setRestDuration(60)">1 min</button>
+      <button class="rest-dur-btn" id="rdb-120" onclick="setRestDuration(120)">2 min</button>
+      <button class="rest-dur-btn" id="rdb-180" onclick="setRestDuration(180)">3 min</button>
+      <button class="rest-dur-btn" id="rdb-300" onclick="setRestDuration(300)">5 min</button>
+    </div>
+    <div class="rest-progress-ring">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="44" class="ring-bg"/>
+        <circle cx="50" cy="50" r="44" class="ring-fg" id="ring-fg"/>
+      </svg>
+      <div class="rest-ring-inner">
+        <div class="rest-countdown" id="rest-countdown">60</div>
+      </div>
+    </div>
+    <button class="rest-skip" onclick="collapseRestToWidget()">CONTINUE</button>
+    <button class="coach-btn ai-gated" id="rest-coach-btn" style="display:none" onclick="restCoachAsk()">🧠 COACH THIS SET</button>
+    <div class="coach-loading" id="rest-coach-loading" style="display:none">
+      <span class="coach-dots"><span></span><span></span><span></span></span> asking Claude…
+    </div>
+    <div class="coach-note" id="rest-coach-note" style="display:none"></div>
+  </div>
+</div>
+
+<!-- FLOATING REST WIDGET — 84px, matches logo + HR widget height -->
+<div id="rest-widget" onclick="expandRestFromWidget(event)">
+  <div class="widget-ring">
+    <svg viewBox="0 0 84 84">
+      <circle cx="42" cy="42" r="40" class="widget-ring-bg"/>
+      <circle cx="42" cy="42" r="40" class="widget-ring-fg" id="widget-ring-fg"/>
+    </svg>
+  </div>
+  <div class="widget-inner">
+    <div class="widget-countdown" id="widget-countdown">60</div>
+    <button class="widget-skip" onclick="event.stopPropagation();skipRest()">✕</button>
+  </div>
+</div>
+
+<!-- SET MODAL -->
+<div id="set-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-ex-name"></div>
+    <div class="modal-prefill-hint" id="modal-prefill-hint"></div>
+    <div class="modal-fields">
+      <div class="modal-field" id="modal-weight-field">
+        <label id="modal-weight-label">Weight (kg)</label>
+        <input type="number" id="modal-weight" placeholder="0" min="0" step="0.5"/>
+      </div>
+      <div class="modal-field">
+        <label id="modal-reps-label">Reps</label>
+        <input type="number" id="modal-reps" placeholder="0" min="0"/>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn confirm" id="modal-confirm-btn" onclick="confirmSet()">LOG SET</button>
+    </div>
+  </div>
+</div>
+
+<!-- CARDIO LOG MODAL -->
+<div id="cardio-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-title" id="cardio-modal-name"></div>
+    <div class="modal-fields" id="cardio-modal-fields" style="flex-wrap:wrap;gap:12px"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeCardioModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmCardioLog()">LOG</button>
+    </div>
+  </div>
+</div>
+
+<!-- YOGA SESSION LOG MODAL (v0.9.9 #5) -->
+<div id="yoga-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-title" id="yoga-modal-name"></div>
+    <div id="yoga-modal-fields"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeYogaModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmYogaLog()">LOG</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODIFY MODAL -->
+<div id="modify-modal" style="display:none" class="modal-overlay-base">
+  <div class="modify-modal-box">
+    <div class="modal-title" id="modify-modal-title">MODIFY SESSION</div>
+    <div id="modify-modal-body"></div>
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="modal-btn cancel" onclick="closeModifyModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="saveModify()">SAVE CHANGES</button>
+    </div>
+    <button class="modify-delete-session-btn" onclick="confirmDeleteSession(state.modifyTarget)">Delete Session</button>
+  </div>
+</div>
+
+<!-- FULL STATS CHART OVERLAY -->
+<div id="full-stats-overlay" style="display:none;position:fixed;inset:0;z-index:800;
+  background:rgba(7,29,95,.97);flex-direction:column;padding:20px 16px 40px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <span style="font-family:var(--font-head),sans-serif;font-size:13px;font-weight:700;
+      color:var(--text-dim);letter-spacing:2px;text-transform:uppercase">FULL PROGRESS</span>
+    <button onclick="closeFullStatsChart()" style="background:none;border:none;
+      color:var(--text-dim);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+  </div>
+  <canvas id="full-stats-canvas" style="width:100%;border-radius:8px"></canvas>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div id="delete-confirm-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-title">CONFIRM DELETE</div>
+    <div id="delete-confirm-msg" style="font-size:13px;color:var(--text-dim);text-align:center;margin:12px 0;line-height:1.5"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeDeleteConfirm()">Cancel</button>
+      <button class="modal-btn confirm" style="background:rgba(235,71,206,.2);border-color:var(--pink);color:var(--pink)" onclick="executeDelete()">DELETE</button>
+    </div>
+  </div>
+</div>
+
+<!-- INFO MODAL -->
+
+
+<!-- DONE DAY MODAL -->
+<!-- SESSION COMPLETE + WRAP-UP (v0.9.5, shown only when AI key saved) -->
+<div id="session-complete-modal" style="display:none" onclick="closeSessionComplete()">
+  <div class="done-day-modal-box" onclick="event.stopPropagation()">
+    <div class="done-day-modal-title" style="color:var(--green)">✓ Session Complete</div>
+    <div class="done-day-modal-sub" id="session-complete-sub"></div>
+    <button class="coach-btn" id="wrapup-btn" style="width:100%" onclick="sessionWrapUp()">🧠 SESSION WRAP-UP</button>
+    <div class="coach-loading" id="wrapup-loading" style="display:none">
+      <span class="coach-dots"><span></span><span></span><span></span></span> asking Claude…
+    </div>
+    <div class="coach-note" id="wrapup-note" style="display:none"></div>
+    <div class="ai-error" id="wrapup-error" style="display:none"></div>
+    <button class="modal-btn cancel" style="margin-top:12px;width:100%" onclick="closeSessionComplete()">Close</button>
+  </div>
+</div>
+
+<div id="done-day-modal" style="display:none" onclick="closeDoneDayModal()">
+  <div class="done-day-modal-box" onclick="event.stopPropagation()">
+    <div class="done-day-modal-title" id="done-day-modal-title">✓ Session Complete</div>
+    <div class="done-day-modal-sub" id="done-day-modal-sub"></div>
+    <button class="done-day-btn review" onclick="doneDayAction('review')">
+      <span class="done-day-btn-icon">📋</span>
+      <span class="done-day-btn-text">Review / Edit Session<span class="done-day-btn-desc">Reopen to view or modify logged data</span></span>
+    </button>
+    <button class="done-day-btn unmark" onclick="doneDayAction('reset')">
+      <span class="done-day-btn-icon">↺</span>
+      <span class="done-day-btn-text">Reset Session<span class="done-day-btn-desc">Clear all ticks, weights and reps — start fresh</span></span>
+    </button>
+    <button class="done-day-btn cancel-opt" onclick="closeDoneDayModal()">
+      <span class="done-day-btn-icon">✕</span>
+      <span class="done-day-btn-text">Cancel</span>
+    </button>
+  </div>
+</div>
+
+<!-- UNSAVED WARNING -->
+<div id="unsaved-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-title">⚠ Unsaved Session</div>
+    <div class="modal-prefill-hint" id="unsaved-sub"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" id="unsaved-cancel-btn" onclick="unsavedAction('discard')">Cancel</button>
+      <button class="modal-btn confirm" id="unsaved-confirm-btn" onclick="unsavedAction('save')">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- conflict modal removed — multi-session has no conflicts -->
+
+<!-- NEW WEEK WIDGET (v0.9.10) — non-blocking, draggable losange, so last week stays visible -->
+<div id="week-widget" style="display:none">
+  <button class="ww-close" onclick="dismissWeekWidget()" aria-label="Dismiss">✕</button>
+  <div class="ww-inner">
+    <div class="ww-tag">NEW WEEK</div>
+    <div class="ww-msg" id="week-widget-msg">Reset for the<br>new week?</div>
+    <div class="ww-btns">
+      <button class="ww-btn yes" onclick="executeWeekReset()">Reset</button>
+      <button class="ww-btn no" onclick="dismissWeekWidget()">Not yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEEK RESET MODAL -->
+<div id="week-reset-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-label-tag">NEW WEEK</div>
+    <div class="modal-title">Ready to reset?</div>
+    <div class="modal-prefill-hint" id="week-reset-msg">Your previous week's sessions are saved in History. Resetting clears the home screen for the new week.</div>
+    <div class="modal-btns" style="flex-direction:column;gap:8px">
+      <button class="modal-btn confirm" onclick="executeWeekReset()">Reset — start new week</button>
+      <button class="modal-btn cancel" onclick="dismissWeekReset()">Not yet — I'll reset manually</button>
+    </div>
+  </div>
+</div>
+
+<!-- REFRESH PAGE CONFIRM -->
+<div id="refresh-confirm-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-label-tag">RESET SESSION</div>
+    <div class="modal-title">Clear this session?</div>
+    <div class="modal-prefill-hint">All ticks, weights and reps for this session will be cleared. This cannot be undone.</div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeRefreshConfirm()">Cancel</button>
+      <button class="modal-btn confirm" onclick="executeRefresh()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEEK RESET CONFIRM (Settings) -->
+<div id="week-reset-confirm-modal" style="display:none" class="modal-overlay-base">
+  <div class="modal-box">
+    <div class="modal-label-tag">RESET WEEK</div>
+    <div class="modal-title">Clear this week?</div>
+    <div class="modal-prefill-hint">All ticked day cards will be cleared. Sessions are saved in History and won't be lost.</div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeWeekResetConfirm()">Cancel</button>
+      <button class="modal-btn confirm" onclick="executeWeekResetFromSettings()">Reset week</button>
+    </div>
+  </div>
+</div>
+
+<!-- LUNG WIDGET — draggable, pinch-scalable, floats freely -->
+<div id="lung-widget">🫁</div>
+
+<!-- BODY STATS MODAL -->
+<div id="body-stats-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">LOG BODY STATS</div>
+    <div class="modal-prefill-hint" id="body-stats-hint"></div>
+    <div class="modal-fields">
+      <div class="modal-field">
+        <label>Body Weight (kg)</label>
+        <input type="number" id="bsm-weight" placeholder="—" min="0" step="0.1"/>
+      </div>
+      <div class="modal-field">
+        <label>Body Fat (%)</label>
+        <input type="number" id="bsm-bf" placeholder="—" min="0" max="100" step="0.1"/>
+      </div>
+      <div class="modal-field">
+        <label>Muscle Mass (kg)</label>
+        <input type="number" id="bsm-muscle" placeholder="—" min="0" step="0.1"/>
+      </div>
+      <div class="modal-field">
+        <label>Phase Angle (°) <button type="button" class="field-info" onclick="showPhaseInfo()" aria-label="What is phase angle?">i</button></label>
+        <input type="number" id="bsm-phase" placeholder="—" min="0" max="20" step="0.1"/>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeBodyStatsModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="saveBodyStats()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- GYM EQUIPMENT OVERLAY -->
+<div id="gym-equipment-overlay" style="display:none;position:fixed;inset:0;z-index:700;
+  background:rgba(7,29,95,.97);flex-direction:column;">
+  <div style="display:flex;justify-content:space-between;align-items:center;
+    padding:max(14px,env(safe-area-inset-top)) 16px 12px;
+    background:linear-gradient(135deg,var(--header) 0%,#3d57a8 100%);
+    flex-shrink:0;">
+    <div>
+      <div style="font-family:var(--font-head),sans-serif;font-size:11px;font-weight:700;
+        letter-spacing:3px;color:rgba(255,255,255,.55);margin-bottom:2px">GYM EQUIPMENT</div>
+      <div style="font-family:var(--font-head),sans-serif;font-size:17px;font-weight:700;color:#fff">
+        Ivanhoe Aquatic &amp; Fitness</div>
+    </div>
+    <button onclick="closeGymEquipment()" style="background:none;border:none;
+      color:rgba(255,255,255,.6);font-size:24px;cursor:pointer;padding:4px 0 4px 12px;line-height:1">✕</button>
+  </div>
+  <div id="gym-equipment-list" style="flex:1;overflow-y:auto;padding:14px 16px 32px;"></div>
+</div>
+
+<!-- MILESTONE ALERT OVERLAY -->
+<div id="milestone-overlay" style="display:none" onclick="dismissMilestone()">
+  <div class="milestone-card" onclick="event.stopPropagation()">
+    <div class="milestone-time" id="milestone-time"></div>
+    <div class="milestone-msg" id="milestone-msg"></div>
+    <button class="milestone-dismiss-btn" onclick="dismissMilestone()">CONTINUE</button>
+  </div>
+</div>
+
+<script src="Gym_Program-GitHub.js"></script>
+  <script src="app.js"></script>
+
+<div id="menu-backdrop" onclick="toggleMenu()"></div>
+<div id="nav-menu">
+  <button class="menu-close" onclick="toggleMenu()">✕</button>
+  <div class="menu-title">GYM DOLPH</div>
+  <button class="menu-item" onclick="menuGo('home')"><svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M9 21V13h6v8"/></svg>Home</button>
+  <button class="menu-item" onclick="menuGo('calendar')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>Calendar</button>
+  <button class="menu-item" onclick="menuGo('stats')"><svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/><line x1="2" y1="20" x2="22" y2="20"/></svg>Progress</button>
+  <button class="menu-item" onclick="menuGo('history')"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><line x1="9.5" y1="2.5" x2="14.5" y2="2.5"/><line x1="12" y1="2.5" x2="12" y2="5"/></svg>History</button>
+  <button class="menu-item" onclick="menuGo('settings')"><svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="8" cy="6" r="2.5" style="fill:var(--green2);stroke:none"/><circle cx="16" cy="12" r="2.5" style="fill:var(--green2);stroke:none"/><circle cx="10" cy="18" r="2.5" style="fill:var(--green2);stroke:none"/></svg>Settings</button>
+  <div class="menu-sep"></div>
+  <button class="menu-item" onclick="openHRFocus()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21C12 21 4 13.5 4 8.5a4.5 4.5 0 018-2.8A4.5 4.5 0 0120 8.5C20 13.5 12 21 12 21z"/><path d="M4 12h4l2-4 4 8 2-4h4" stroke-width="1.5"/></svg>HR Display</button>
+</div>
+
+<!-- HR FOCUS OVERLAY (v0.9.6) -->
+<div id="hr-focus-overlay" style="display:none" onclick="closeHRFocus()">
+  <div class="hr-focus-inner">
+    <div id="hr-focus-zone">—</div>
+    <div class="hr-focus-bpm-row">
+      <span id="hr-focus-bpm">--</span>
+      <span class="hr-focus-unit">bpm</span>
+    </div>
+    <div class="hr-focus-ecg-panel">
+      <svg class="hr-focus-ecg-svg" id="hr-focus-ecg-svg" viewBox="0 0 512 56" fill="none" preserveAspectRatio="none">
+        <path class="hr-ecg-trace" id="hr-focus-ecg-trace" d="M 0,28 L 512,28"/>
+      </svg>
+    </div>
+    <button id="hr-focus-disconnect-btn" class="hr-focus-disconnect-btn"
+      onclick="event.stopPropagation(); disconnectHR(); closeHRFocus();">Disconnect HR monitor</button>
+    <div class="hr-focus-hint">tap anywhere to exit</div>
+  </div>
+</div>
+<!-- Custom confirm/alert dialog (v0.9.6) -->
+<div id="app-dialog" style="display:none" class="modal-overlay-base" style="z-index:9999">
+  <div class="modal-box app-dialog-box">
+    <div class="modal-title" id="app-dialog-title"></div>
+    <div id="app-dialog-msg" style="color:var(--text-dim);font-family:'Exo 2',sans-serif;font-size:14px;line-height:1.5;margin:10px 0 20px"></div>
+    <div class="modal-btns" id="app-dialog-btns"></div>
+  </div>
+</div>
+
+</body>
+</html>
